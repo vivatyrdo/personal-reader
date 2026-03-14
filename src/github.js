@@ -1,12 +1,10 @@
 import { Octokit } from "@octokit/rest";
 import ePub from "epubjs";
 
-const octokit = new Octokit({
-  auth: import.meta.env.VITE_GITHUB_TOKEN,
-});
+const octokit = new Octokit(); // без токена
 
-const owner = import.meta.env.VITE_GITHUB_USERNAME;
-const repo = import.meta.env.VITE_GITHUB_REPO;
+const owner = "vivatyrdo";
+const repo = "my-books-data";
 
 export const getBooksList = async () => {
   try {
@@ -19,11 +17,8 @@ export const getBooksList = async () => {
 };
 
 export const getBookFile = async (path) => {
-  const token = import.meta.env.VITE_GITHUB_TOKEN;
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-  const response = await fetch(url, {
-    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3.raw' }
-  });
+  const url = `https://raw.githubusercontent.com/${owner}/${repo}/main/${path}`;
+  const response = await fetch(url);
   if (!response.ok) throw new Error('Ошибка скачивания');
   return await response.arrayBuffer();
 };
@@ -34,7 +29,7 @@ export const getBookCover = async (path) => {
   await book.ready;
   const cover = await book.coverUrl();
   book.destroy();
-  return cover; // blob URL или null
+  return cover;
 };
 
 export const getAllProgress = async () => {
@@ -48,12 +43,14 @@ export const getAllProgress = async () => {
 };
 
 export const saveProgress = async (bookPath, cfi) => {
+  const token = import.meta.env.VITE_GITHUB_TOKEN;
+  const authedOctokit = new Octokit({ auth: token });
   const path = 'progress.json';
   let sha;
   let currentContent = {};
 
   try {
-    const res = await octokit.rest.repos.getContent({ owner, repo, path });
+    const res = await authedOctokit.rest.repos.getContent({ owner, repo, path });
     sha = res.data.sha;
     const content = Uint8Array.from(atob(res.data.content), c => c.charCodeAt(0));
     currentContent = JSON.parse(new TextDecoder().decode(content));
@@ -63,7 +60,7 @@ export const saveProgress = async (bookPath, cfi) => {
   const finalJson = JSON.stringify(currentContent);
   const encodedContent = btoa(unescape(encodeURIComponent(finalJson)));
 
-  await octokit.rest.repos.createOrUpdateFileContents({
+  await authedOctokit.rest.repos.createOrUpdateFileContents({
     owner, repo, path,
     message: `Save progress: ${bookPath}`,
     content: encodedContent,
