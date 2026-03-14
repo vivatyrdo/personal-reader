@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { getBooksList, getBookCover } from './github';
 import Reader from './Reader';
 
+console.log('TOKEN:', import.meta.env.VITE_GITHUB_TOKEN)
+console.log('USER:', import.meta.env.VITE_GITHUB_USERNAME)
+console.log('REPO:', import.meta.env.VITE_GITHUB_REPO)
+
 function App() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
